@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lark-bridge"
+version = "0.1.2"
+description = "Unofficial Feishu/Lark Web SDK - WebSocket listener, message search, send, and drive operations"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Ryan Zhu" },
+]
+keywords = ["feishu", "lark", "websocket", "protobuf", "im"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Chat",
+]
+dependencies = [
+    "httpx>=0.27.0",
+    "websockets>=12.0",
+    "protobuf>=5.0.0",
+    "protobuf3-to-dict>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5.0", "pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.urls]
+Homepage = "https://github.com/LiangFu/lark-bridge"
+Repository = "https://github.com/LiangFu/lark-bridge"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = ["**/proto/"]
+
+[tool.ruff.lint.per-file-ignores]
+"*_pb2.py" = ["ALL"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lark_bridge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

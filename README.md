@@ -1,0 +1,88 @@
+# lark-bridge
+
+Unofficial Feishu/Lark Web SDK using cookie-based authentication. Provides real-time message listening via WebSocket, message search/fetch, sending, and Drive operations.
+
+> ⚠️ This library is reverse-engineered from Feishu's web client. It is **not** an official API and may break without notice.
+
+## Installation
+
+```bash
+pip install lark-bridge
+```
+
+## Quick Start
+
+```python
+import asyncio
+from lark_bridge import LarkBridge
+
+bridge = LarkBridge("your_cookie_string_here")
+```
+
+### Listen to Messages
+
+```python
+async def main():
+    async for msg in bridge.listen(watch_chats=["chat_id"]):
+        print(f"[{msg['chat_id']}] {msg['from_id']}: {msg['text']}")
+
+asyncio.run(main())
+```
+
+### Search History
+
+```python
+result = await bridge.search_messages(
+    chat_id="7052636707732193282",
+    start_time=1716192000,
+    end_time=1716278400,
+)
+print(result["msg_ids"])
+```
+
+### Fetch Messages
+
+```python
+messages = await bridge.fetch_messages(["msg_id_1", "msg_id_2"])
+for msg in messages:
+    print(msg["text"])
+```
+
+### Send Message
+
+```python
+await bridge.send_message(
+    chat_id="7052636707732193282",
+    text="Hello!",
+    reply_id="optional_msg_id",
+    at_user_ids=["user_id"],
+)
+```
+
+### Drive Operations
+
+```python
+folder = await bridge.create_folder("My Folder", parent_token="root_token")
+result = await bridge.upload_file(folder["token"], "report.txt", b"file content")
+```
+
+## Cookie Setup
+
+1. Open [Feishu Web](https://www.feishu.cn/) in your browser and log in
+2. Open DevTools (F12) → Application → Cookies
+3. Copy the full cookie string (all key=value pairs joined by `; `)
+4. Pass it to `LarkBridge("your_cookie_string")`
+
+Example cookie format:
+
+```python
+cookie = "passport_web_did=YOUR_DID; session=YOUR_SESSION; _csrf_token=YOUR_CSRF_TOKEN"
+
+bridge = LarkBridge(cookie)
+```
+
+Cookie typically stays valid as long as the WebSocket connection is maintained.
+
+## License
+
+[MIT](LICENSE)
