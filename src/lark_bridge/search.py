@@ -25,7 +25,7 @@ def _ev(v: int) -> bytes:
     return bytes(p)
 
 
-def _headers(cookie: str, xcmd: int, rid: str, domain: str = "www.feishu.cn") -> dict:
+def _headers(cookie: str, xcmd: int, rid: str, domain: str) -> dict:
     return {
         "Cookie": cookie,
         "content-type": "application/x-protobuf",
@@ -82,7 +82,7 @@ async def search_msg_ids(
     from_id: str = "",
     mention_user_id: str = "",
     limit: int = 15,
-    domain: str = "www.feishu.cn",
+    domain: str = "",
 ) -> dict:
     """Search message IDs with automatic pagination up to `limit`.
 
@@ -116,7 +116,7 @@ async def search_msg_ids_page(
     from_id: str = "",
     mention_user_id: str = "",
     page_token: str = "",
-    domain: str = "www.feishu.cn",
+    domain: str = "",
 ) -> dict:
     """Search message IDs - single page.
 
@@ -202,7 +202,7 @@ async def search_msg_ids_page(
     return {"msg_ids": list(dict.fromkeys(msg_ids)), "has_more": has_more, "page_token": next_page_token}
 
 
-async def fetch_messages(cookie: str, msg_ids: list[str], domain: str = "www.feishu.cn") -> list[dict]:
+async def fetch_messages(cookie: str, msg_ids: list[str], domain: str = "") -> list[dict]:
     """Fetch message content by msg_ids. Returns list of message dicts."""
     if not msg_ids:
         return []

@@ -36,7 +36,7 @@ async def listen(
     cookie: str,
     cookies: dict[str, str],
     watch_chats: list[str] | None = None,
-    domain: str = "www.feishu.cn",
+    domain: str = "",
 ) -> AsyncGenerator[Message, None]:
     """Connect to Feishu WebSocket and yield Message dicts.
 
@@ -148,7 +148,7 @@ def _build_ack(sid: int) -> bytes:
     return frame.SerializeToString()
 
 
-async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = "www.feishu.cn") -> dict | None:
+async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = "") -> dict | None:
     """Build WebSocket connection parameters."""
     try:
         device_id = cookies.get("passport_web_did", "")

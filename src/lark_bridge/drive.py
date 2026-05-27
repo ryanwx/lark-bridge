@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 async def create_folder(
-    cookie: str, cookies: dict[str, str], name: str, parent_token: str = "", domain: str = "www.feishu.cn"
+    cookie: str, cookies: dict[str, str], name: str, parent_token: str = "", domain: str = ""
 ) -> dict | None:
     """Create a folder in Feishu Drive.
 
@@ -48,7 +48,7 @@ async def upload_file(
     folder_token: str,
     file_name: str,
     file_content: bytes,
-    domain: str = "www.feishu.cn",
+    domain: str = "",
 ) -> dict | None:
     """Upload a file to Feishu Drive.
 
