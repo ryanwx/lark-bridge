@@ -8,7 +8,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def create_folder(cookie: str, cookies: dict[str, str], name: str, parent_token: str = "") -> dict | None:
+async def create_folder(
+    cookie: str, cookies: dict[str, str], name: str, parent_token: str = "", domain: str = "www.feishu.cn"
+) -> dict | None:
     """Create a folder in Feishu Drive.
 
     Returns {"token": "...", "url": "..."} or None.
@@ -19,13 +21,13 @@ async def create_folder(cookie: str, cookies: dict[str, str], name: str, parent_
             "content-type": "application/x-www-form-urlencoded",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "x-csrftoken": cookies.get("_csrf_token", ""),
-            "referer": "https://www.feishu.cn/",
-            "origin": "https://www.feishu.cn",
+            "referer": f"https://{domain}/",
+            "origin": f"https://{domain}",
         }
         data = f"parent_token={parent_token}&name={name}&desc=&source=0"
         async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
             resp = await client.post(
-                "https://www.feishu.cn/space/api/explorer/v2/create/folder/",
+                f"https://{domain}/space/api/explorer/v2/create/folder/",
                 content=data,
             )
             result = resp.json()
@@ -46,6 +48,7 @@ async def upload_file(
     folder_token: str,
     file_name: str,
     file_content: bytes,
+    domain: str = "www.feishu.cn",
 ) -> dict | None:
     """Upload a file to Feishu Drive.
 
@@ -66,8 +69,8 @@ async def upload_file(
             "Cookie": cookie,
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "x-csrftoken": cookies.get("_csrf_token", ""),
-            "referer": "https://www.feishu.cn/",
-            "origin": "https://www.feishu.cn",
+            "referer": f"https://{domain}/",
+            "origin": f"https://{domain}",
         }
         async with httpx.AsyncClient(headers=headers, verify=False, timeout=60) as client:
             resp = await client.post(

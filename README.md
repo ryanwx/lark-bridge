@@ -17,6 +17,9 @@ import asyncio
 from lark_bridge import LarkBridge
 
 bridge = LarkBridge("your_cookie_string_here")
+
+# For enterprise tenants with custom domain:
+bridge = LarkBridge("your_cookie_string_here", domain="yourcompany.feishu.cn")
 ```
 
 ### Listen to Messages
@@ -32,12 +35,23 @@ asyncio.run(main())
 ### Search History
 
 ```python
+# Simple: auto-paginate up to limit
 result = await bridge.search_messages(
     chat_id="7052636707732193282",
     start_time=1716192000,
     end_time=1716278400,
+    limit=50,
 )
 print(result["msg_ids"])
+
+# Manual pagination:
+page = await bridge.search_messages_page(chat_id="7052636707732193282")
+while page["has_more"]:
+    page = await bridge.search_messages_page(
+        chat_id="7052636707732193282",
+        page_token=page["page_token"],
+    )
+    print(page["msg_ids"])
 ```
 
 ### Fetch Messages

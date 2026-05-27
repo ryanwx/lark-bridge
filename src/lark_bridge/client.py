@@ -8,9 +8,10 @@ from lark_bridge import listener, search, sender, drive
 class LarkBridge:
     """High-level Feishu/Lark client using web cookie authentication."""
 
-    def __init__(self, cookie: str):
+    def __init__(self, cookie: str, domain: str = "www.feishu.cn"):
         self._cookie = cookie.strip()
         self._cookies = self._parse_cookies(self._cookie)
+        self._domain = domain
 
     @staticmethod
     def _parse_cookies(cookie_str: str) -> dict[str, str]:
@@ -30,12 +31,32 @@ class LarkBridge:
         mention_user_id: str = "",
         limit: int = 15,
     ) -> dict:
-        """Search message IDs. Returns {"msg_ids": [...], "has_more": bool}."""
-        return await search.search_msg_ids(self._cookie, chat_id, start_time, end_time, from_id, mention_user_id, limit)
+        """Search message IDs with auto-pagination. Returns {"msg_ids": [...], "has_more": bool}."""
+        return await search.search_msg_ids(
+            self._cookie, chat_id, start_time, end_time, from_id, mention_user_id, limit, self._domain
+        )
+
+    async def search_messages_page(
+        self,
+        chat_id: str,
+        start_time: int = 0,
+        end_time: int = 0,
+        from_id: str = "",
+        mention_user_id: str = "",
+        page_token: str = "",
+    ) -> dict:
+        """Search message IDs - single page.
+
+        Returns {"msg_ids": [...], "has_more": bool, "page_token": str}.
+        Pass returned page_token to next call to paginate.
+        """
+        return await search.search_msg_ids_page(
+            self._cookie, chat_id, start_time, end_time, from_id, mention_user_id, page_token, self._domain
+        )
 
     async def fetch_messages(self, msg_ids: list[str]) -> list[dict]:
         """Fetch message content by IDs."""
-        return await search.fetch_messages(self._cookie, msg_ids)
+        return await search.fetch_messages(self._cookie, msg_ids, self._domain)
 
     async def send_message(
         self,
@@ -49,8 +70,8 @@ class LarkBridge:
 
     async def create_folder(self, name: str, parent_token: str = "") -> dict | None:
         """Create a Drive folder. Returns {"token", "url"} or None."""
-        return await drive.create_folder(self._cookie, self._cookies, name, parent_token)
+        return await drive.create_folder(self._cookie, self._cookies, name, parent_token, self._domain)
 
     async def upload_file(self, folder_token: str, file_name: str, file_content: bytes) -> dict | None:
         """Upload a file to Drive. Returns {"file_token", "node_token"} or None."""
-        return await drive.upload_file(self._cookie, self._cookies, folder_token, file_name, file_content)
+        return await drive.upload_file(self._cookie, self._cookies, folder_token, file_name, file_content, self._domain)
