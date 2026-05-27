@@ -19,7 +19,7 @@ class LarkBridge:
 
     async def listen(self, watch_chats: list[str] | None = None) -> AsyncGenerator[dict, None]:
         """Connect to WebSocket and yield Message dicts."""
-        async for msg in listener.listen(self._cookie, self._cookies, watch_chats):
+        async for msg in listener.listen(self._cookie, self._cookies, watch_chats, self._domain):
             yield msg
 
     async def search_messages(

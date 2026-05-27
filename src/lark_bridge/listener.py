@@ -36,6 +36,7 @@ async def listen(
     cookie: str,
     cookies: dict[str, str],
     watch_chats: list[str] | None = None,
+    domain: str = "www.feishu.cn",
 ) -> AsyncGenerator[Message, None]:
     """Connect to Feishu WebSocket and yield Message dicts.
 
@@ -43,7 +44,7 @@ async def listen(
     """
     while True:
         try:
-            params = await build_ws_params(cookie, cookies)
+            params = await build_ws_params(cookie, cookies, domain)
             if not params:
                 logger.error("Failed to build WS params, retrying in 30s")
                 await asyncio.sleep(30)
@@ -147,7 +148,7 @@ def _build_ack(sid: int) -> bytes:
     return frame.SerializeToString()
 
 
-async def build_ws_params(cookie: str, cookies: dict[str, str]) -> dict | None:
+async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = "www.feishu.cn") -> dict | None:
     """Build WebSocket connection parameters."""
     try:
         device_id = cookies.get("passport_web_did", "")
@@ -163,7 +164,7 @@ async def build_ws_params(cookie: str, cookies: dict[str, str]) -> dict | None:
         async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
             # Get appKey
             app_key = None
-            resp = await client.get("https://www.feishu.cn/messenger/", follow_redirects=True)
+            resp = await client.get(f"https://{domain}/messenger/", follow_redirects=True)
             match = re.search(r"appKey:\s*[\"']([^\"']+)[\"']", resp.text)
             if match:
                 app_key = match.group(1)
