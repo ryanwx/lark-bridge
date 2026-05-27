@@ -83,9 +83,11 @@ async def upload_file(
                 logger.error(f"Upload file failed: {result.get('message')}")
                 return None
             data = result.get("data", {})
+            file_token = data.get("file_token", "")
             return {
-                "file_token": data.get("file_token", ""),
+                "file_token": file_token,
                 "node_token": data.get("extra", {}).get("node_token", ""),
+                "url": f"https://{domain}/file/{file_token}",
             }
     except Exception as e:
         logger.error(f"Upload file error: {e}")
