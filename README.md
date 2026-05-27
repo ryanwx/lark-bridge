@@ -77,7 +77,10 @@ await bridge.send_message(
 
 ```python
 folder = await bridge.create_folder("My Folder", parent_token="root_token")
+# folder = {"token": "...", "url": "https://domain/drive/folder/..."}
+
 result = await bridge.upload_file(folder["token"], "report.txt", b"file content")
+# result = {"file_token": "...", "node_token": "...", "url": "https://domain/file/..."}
 ```
 
 ## Cookie Setup
