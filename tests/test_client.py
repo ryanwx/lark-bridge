@@ -21,4 +21,4 @@ async def test_search_messages_no_cookie():
         mock_search.return_value = {"msg_ids": [], "has_more": False}
         result = await bridge.search_messages("chat_id_123", 0, 0)
         assert result == {"msg_ids": [], "has_more": False}
-        mock_search.assert_called_once_with("", "chat_id_123", 0, 0, "", "", 15)
+        mock_search.assert_called_once_with("", "chat_id_123", 0, 0, "", "", 15, "www.feishu.cn")
