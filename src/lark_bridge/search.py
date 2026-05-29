@@ -249,6 +249,8 @@ async def fetch_messages(cookie: str, msg_ids: list[str], domain: str = "") -> l
                 "type": m.get("type", 0),
                 "from_id": m.get("fromId", ""),
                 "chat_id": m.get("chatId", ""),
+                "parent_id": m.get("parentId", ""),
+                "root_id": m.get("rootId", ""),
                 "create_time": m.get("createTime", 0),
                 "text": decode_text(m),
             }
