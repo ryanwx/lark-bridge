@@ -61,7 +61,8 @@ messages = await bridge.fetch_messages(["msg_id_1", "msg_id_2"])
 for msg in messages:
     print(msg["text"])
 # Each message dict contains:
-# msg_id, type, from_id, chat_id, parent_id, root_id, create_time, text
+# msg_id, type, from_id, chat_id, chat_type, parent_id, root_id, create_time, text
+# chat_type: 0=unknown, 1=P2P(private), 2=GROUP, 3=TOPIC_GROUP
 ```
 
 ### Send Message

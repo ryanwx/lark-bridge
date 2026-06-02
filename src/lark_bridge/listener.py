@@ -26,6 +26,7 @@ class Message(TypedDict):
     chat_id: str
     from_id: str
     type: int
+    chat_type: int
     text: str
     parent_id: str
     root_id: str
@@ -112,6 +113,7 @@ def _handle_frame(data: bytes, watch_chats: list[str] | None) -> tuple[int, list
                 chat_id=chat_id,
                 from_id=msg.get("fromId", ""),
                 type=msg.get("type", 0),
+                chat_type=msg.get("chatType", 0),
                 text=decode_text(msg),
                 parent_id=msg.get("parentId", ""),
                 root_id=msg.get("rootId", ""),
