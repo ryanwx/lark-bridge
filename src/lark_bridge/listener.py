@@ -14,11 +14,10 @@ import websockets
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
+from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST
 from protobuf_to_dict import protobuf_to_dict
 
 logger = logging.getLogger(__name__)
-
-INTERNAL_API = "https://internal-api-lark-api.feishu.cn"
 
 
 class Message(TypedDict):
@@ -51,7 +50,7 @@ async def listen(
                 await asyncio.sleep(30)
                 continue
 
-            url = f"wss://msg-frontier.feishu.cn/ws/v2?{urlencode(params)}"
+            url = f"{WS_FRONTIER}/ws/v2?{urlencode(params)}"
             logger.info("Connecting to Feishu WebSocket...")
 
             async with websockets.connect(url) as ws:
@@ -186,7 +185,7 @@ async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = ""
 
             # Get ticket
             resp = await client.get(
-                "https://login.feishu.cn/suite/passport/frontier_ticket/",
+                f"{LOGIN_HOST}/suite/passport/frontier_ticket/",
                 params={"local_device_id": device_id},
             )
             ticket = resp.json().get("ticket", "")

@@ -66,7 +66,7 @@ class LarkBridge:
         at_user_ids: list[str] | None = None,
     ) -> bool:
         """Send a text message. Returns True on success."""
-        return await sender.send_message(self._cookie, chat_id, text, reply_id, at_user_ids)
+        return await sender.send_message(self._cookie, chat_id, text, reply_id, at_user_ids, self._domain)
 
     async def create_folder(self, name: str, parent_token: str = "") -> dict | None:
         """Create a Drive folder. Returns {"token", "url"} or None."""
@@ -75,3 +75,19 @@ class LarkBridge:
     async def upload_file(self, folder_token: str, file_name: str, file_content: bytes) -> dict | None:
         """Upload a file to Drive. Returns {"file_token", "node_token"} or None."""
         return await drive.upload_file(self._cookie, self._cookies, folder_token, file_name, file_content, self._domain)
+
+    async def export_document(self, token: str, type: str, file_extension: str) -> bytes | None:
+        """Export a document. Returns file bytes or None.
+
+        Args:
+            token: Document token (obj_token). For wiki pages, call resolve_wiki_token first.
+            type: Document type - "docx" (wiki/docx pages), "sheet".
+            file_extension: Export format.
+                - docx → "markdown", "docx", "pdf"
+                - sheet → "xlsx" only
+        """
+        return await drive.export_document(self._cookie, self._cookies, token, type, file_extension, self._domain)
+
+    async def resolve_wiki_token(self, wiki_token: str) -> tuple[str, str]:
+        """Resolve a wiki_token to (obj_token, type). Returns ("", "") on failure."""
+        return await drive._resolve_wiki_token(self._cookie, self._cookies, wiki_token, self._domain)

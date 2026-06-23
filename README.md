@@ -86,6 +86,68 @@ result = await bridge.upload_file(folder["token"], "report.txt", b"file content"
 # result = {"file_token": "...", "node_token": "...", "url": "https://domain/file/..."}
 ```
 
+### Export Document
+
+```python
+# Export a docx/wiki page as markdown
+content = await bridge.export_document(
+    token="GSeJdHQbQo3b2jxg8CYc1Zqqnah",
+    type="docx",              # "docx" | "sheet" | "doc"
+    file_extension="markdown",  # "markdown" | "docx" | "pdf" | "xlsx" | "csv"
+)
+if content:
+    Path("output.md").write_bytes(content)
+```
+
+Supported combinations:
+- `type="docx"` (wiki/docx pages) → markdown, docx, pdf
+- `type="sheet"` → xlsx only
+
+## MCP Server
+
+Expose lark-bridge as an [MCP](https://modelcontextprotocol.io/) server so AI clients (Claude Desktop, Cursor, Kiro, etc.) can call Feishu tools directly.
+
+### Install
+
+```bash
+pip install lark-bridge[mcp]
+```
+
+### Run
+
+```bash
+FEISHU_COOKIE="your_cookie_string" lark-bridge-mcp
+```
+
+For enterprise tenants with a custom domain:
+
+```bash
+FEISHU_COOKIE="your_cookie_string" FEISHU_DOMAIN="yourcompany.feishu.cn" lark-bridge-mcp
+```
+
+If your cookie changes frequently, use a file instead of an environment variable. The server reads the file on every tool call, so updates take effect immediately without restarting:
+
+```bash
+FEISHU_COOKIE_FILE="/path/to/cookie.txt" lark-bridge-mcp
+```
+
+### MCP Client Config
+
+```json
+{
+  "mcpServers": {
+    "lark-bridge": {
+      "command": "lark-bridge-mcp",
+      "env": {
+        "FEISHU_COOKIE": "your_cookie_string"
+      }
+    }
+  }
+}
+```
+
+Available tools: `send_message`, `search_messages`, `fetch_messages`, `create_folder`, `upload_file`.
+
 ## Cookie Setup
 
 1. Open [Feishu Web](https://www.feishu.cn/) in your browser and log in

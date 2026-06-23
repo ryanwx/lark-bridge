@@ -7,10 +7,9 @@ import time
 import httpx
 
 from lark_bridge.proto import proto_pb2 as pb
+from lark_bridge._urls import INTERNAL_API
 
 logger = logging.getLogger(__name__)
-
-GATEWAY_URL = "https://internal-api-lark-api.feishu.cn/im/gateway/"
 
 
 def _build_send_packet(
@@ -75,10 +74,12 @@ async def send_message(
     text: str,
     reply_id: str = "",
     at_user_ids: list[str] | None = None,
+    domain: str = "",
 ) -> bool:
     """Send a text message. Returns True on success."""
     try:
         data, request_id = _build_send_packet(text, chat_id, reply_id, at_user_ids)
+        gateway_url = f"{INTERNAL_API}/im/gateway/"
         headers = {
             "Cookie": cookie,
             "content-type": "application/x-protobuf",
@@ -91,11 +92,11 @@ async def send_message(
             "x-web-version": "3.9.32",
             "x-lgw-os-type": "1",
             "x-lgw-terminal-type": "2",
-            "origin": "https://open-dev.feishu.cn",
-            "referer": "https://open-dev.feishu.cn/",
+            "origin": f"https://{domain}",
+            "referer": f"https://{domain}/",
         }
         async with httpx.AsyncClient(verify=False, timeout=10) as client:
-            resp = await client.post(GATEWAY_URL, headers=headers, content=data)
+            resp = await client.post(gateway_url, headers=headers, content=data)
             if resp.status_code == 200:
                 logger.info(f"Message sent to {chat_id}")
                 return True

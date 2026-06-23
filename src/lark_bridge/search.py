@@ -11,8 +11,7 @@ from protobuf_to_dict import protobuf_to_dict
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
-
-GATEWAY_URL = "https://internal-api-lark-api.feishu.cn/im/gateway/"
+from lark_bridge._urls import INTERNAL_API
 
 
 def _ev(v: int) -> bytes:
@@ -146,7 +145,7 @@ async def search_msg_ids_page(
 
     async with httpx.AsyncClient(verify=False, timeout=15) as client:
         resp = await client.post(
-            GATEWAY_URL,
+            f"{INTERNAL_API}/im/gateway/",
             headers=_headers(cookie, 11021, rid, domain),
             content=pkt.SerializeToString(),
         )
@@ -220,7 +219,7 @@ async def fetch_messages(cookie: str, msg_ids: list[str], domain: str = "") -> l
 
     async with httpx.AsyncClient(verify=False, timeout=15) as client:
         resp = await client.post(
-            GATEWAY_URL,
+            f"{INTERNAL_API}/im/gateway/",
             headers=_headers(cookie, 8, rid, domain),
             content=pkt.SerializeToString(),
         )
