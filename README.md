@@ -123,6 +123,20 @@ Supported combinations:
 - `type="docx"` (wiki/docx pages) → markdown, docx, pdf
 - `type="sheet"` → xlsx only
 
+### Import Document
+
+```python
+# Import a markdown file as an online docx
+result = await bridge.import_document(
+    folder_token="fldcnfByPeMzPxrgtS5Xl06YRid",
+    file_name="report.md",
+    file_content=Path("report.md").read_bytes(),
+    file_extension="md",      # source format
+    target_type="docx",       # target online doc type
+)
+# result = {"token": "...", "url": "https://domain/docx/..."}
+```
+
 ## MCP Server
 
 Expose lark-bridge as an [MCP](https://modelcontextprotocol.io/) server so AI clients (Claude Desktop, Cursor, Kiro, etc.) can call Feishu tools directly.

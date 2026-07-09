@@ -96,6 +96,36 @@ class LarkBridge:
         """Download a file from Drive. Returns file bytes or None."""
         return await drive.download_file(self._cookie, self._cookies, file_token, self._domain)
 
+    async def import_document(
+        self,
+        folder_token: str,
+        file_name: str,
+        file_content: bytes,
+        file_extension: str = "md",
+        target_type: str = "docx",
+    ) -> dict | None:
+        """Import a file (e.g. markdown) as an online document.
+
+        Args:
+            folder_token: Target folder token.
+            file_name: File name (e.g. "report.md").
+            file_content: Raw file bytes.
+            file_extension: Source format - "md", "docx", "xlsx".
+            target_type: Target doc type - "docx", "sheet".
+
+        Returns {"token", "url"} or None.
+        """
+        return await drive.import_document(
+            self._cookie,
+            self._cookies,
+            folder_token,
+            file_name,
+            file_content,
+            file_extension,
+            target_type,
+            self._domain,
+        )
+
     async def list_my_space(self) -> list[dict]:
         """List root folders in 'My Space'."""
         return await drive.list_my_space(self._cookie, self._cookies, self._domain)

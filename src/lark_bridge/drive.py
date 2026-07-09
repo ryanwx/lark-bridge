@@ -1,5 +1,6 @@
-"""Feishu Drive operations: create folder, upload file."""
+"""Feishu Drive operations: create folder, upload file, import, export."""
 
+import json
 import logging
 import zlib
 
@@ -97,6 +98,134 @@ async def upload_file(
 
 
 OBJ_TYPE_MAP = {22: "docx", 3: "sheet", 2: "doc"}
+
+
+async def import_document(
+    cookie: str,
+    cookies: dict[str, str],
+    folder_token: str,
+    file_name: str,
+    file_content: bytes,
+    file_extension: str = "md",
+    target_type: str = "docx",
+    domain: str = "",
+) -> dict | None:
+    """Import a file (e.g. markdown) as an online document in Drive.
+
+    Args:
+        folder_token: Target folder token.
+        file_name: File name (e.g. "report.md").
+        file_content: Raw file bytes.
+        file_extension: Source format - "md", "docx", "xlsx", etc.
+        target_type: Target doc type - "docx", "sheet".
+
+    Returns {"token": "...", "url": "..."} on success, None on failure.
+    """
+    import asyncio
+    import zlib
+
+    headers = {
+        "Cookie": cookie,
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/",
+        "origin": f"https://{domain}",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=60) as client:
+            # Step 1: Prepare upload
+            resp = await client.post(
+                f"https://{domain}/space/api/box/upload/prepare/",
+                json={
+                    "mount_point": "ccm_import",
+                    "mount_node_token": folder_token,
+                    "name": file_name,
+                    "size": len(file_content),
+                    "extra": {"extra": json.dumps({"obj_type": target_type, "file_extension": file_extension})},
+                    "size_checker": True,
+                },
+                headers={**headers, "content-type": "application/json"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"Import prepare failed: {result.get('message')}")
+                return None
+            upload_id = result["data"]["upload_id"]
+
+            # Step 2: Upload content
+            checksum = zlib.adler32(file_content) & 0xFFFFFFFF
+            resp = await client.post(
+                f"{DRIVE_STREAM}/space/api/box/stream/upload/merge_block/",
+                params={"upload_id": upload_id, "mount_point": "ccm_import"},
+                content=file_content,
+                headers={
+                    **headers,
+                    "content-type": "application/octet-stream",
+                    "x-block-list-checksum": str(checksum),
+                    "x-block-origin-size": "4194304",
+                    "x-seq-list": "0",
+                },
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"Import upload block failed: {result.get('message')}")
+                return None
+
+            # Step 3: Finish upload
+            resp = await client.post(
+                f"https://{domain}/space/api/box/upload/finish/",
+                json={"upload_id": upload_id, "num_blocks": 1, "mount_point": "ccm_import"},
+                headers={**headers, "content-type": "application/json"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"Import finish failed: {result.get('message')}")
+                return None
+            file_token = result["data"]["file_token"]
+
+            # Step 4: Create import task
+            resp = await client.post(
+                f"https://{domain}/space/api/import/create/",
+                json={
+                    "file_token": file_token,
+                    "type": target_type,
+                    "file_extension": file_extension,
+                    "point": {"mount_type": 1, "mount_key": folder_token},
+                    "event_source": "1",
+                },
+                headers={**headers, "content-type": "multipart/form-data"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"Import create failed: {result.get('msg')}")
+                return None
+            ticket = result["data"]["ticket"]
+
+            # Step 5: Poll for result
+            for _ in range(30):
+                await asyncio.sleep(1)
+                resp = await client.get(
+                    f"https://{domain}/space/api/import/result/{ticket}",
+                )
+                result = resp.json()
+                if result.get("code") != 0:
+                    logger.error(f"Import poll failed: {result.get('msg')}")
+                    return None
+                job_result = result.get("data", {}).get("result", {})
+                status = job_result.get("job_status")
+                if status == 0:
+                    token = job_result.get("token", "")
+                    url = job_result.get("url", f"https://{domain}/{target_type}/{token}")
+                    return {"token": token, "url": url}
+                if status == 1 or status == 2:
+                    continue
+                logger.error(f"Import failed with status: {status}")
+                return None
+            logger.error("Import timed out")
+            return None
+    except Exception as e:
+        logger.error(f"Import document error: {e}")
+        return None
 
 
 async def download_file(cookie: str, cookies: dict[str, str], file_token: str, domain: str = "") -> bytes | None:

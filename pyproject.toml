@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lark-bridge"
-version = "0.4.1"
+version = "0.5.0"
 description = "Unofficial Feishu/Lark Web SDK - WebSocket listener, message search, send, and drive operations"
 readme = "README.md"
 license = "MIT"
