@@ -11,7 +11,7 @@ from protobuf_to_dict import protobuf_to_dict
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
-from lark_bridge._urls import INTERNAL_API
+from lark_bridge._urls import INTERNAL_API, USER_AGENT
 
 
 def _ev(v: int) -> bytes:
@@ -29,7 +29,7 @@ def _headers(cookie: str, xcmd: int, rid: str, domain: str) -> dict:
         "Cookie": cookie,
         "content-type": "application/x-protobuf",
         "locale": "en-US",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "user-agent": USER_AGENT,
         "x-command": str(xcmd),
         "x-command-version": "7.68.5",
         "x-appid": "161471",

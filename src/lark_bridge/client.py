@@ -91,3 +91,23 @@ class LarkBridge:
     async def resolve_wiki_token(self, wiki_token: str) -> tuple[str, str]:
         """Resolve a wiki_token to (obj_token, type). Returns ("", "") on failure."""
         return await drive._resolve_wiki_token(self._cookie, self._cookies, wiki_token, self._domain)
+
+    async def download_file(self, file_token: str) -> bytes | None:
+        """Download a file from Drive. Returns file bytes or None."""
+        return await drive.download_file(self._cookie, self._cookies, file_token, self._domain)
+
+    async def list_my_space(self) -> list[dict]:
+        """List root folders in 'My Space'."""
+        return await drive.list_my_space(self._cookie, self._cookies, self._domain)
+
+    async def list_shared_folders(self) -> list[dict]:
+        """List root folders in 'Shared Space'."""
+        return await drive.list_shared_folders(self._cookie, self._cookies, self._domain)
+
+    async def list_children(self, folder_token: str) -> list[dict]:
+        """List children (files + subfolders) of a folder."""
+        return await drive.list_children(self._cookie, self._cookies, folder_token, self._domain)
+
+    async def delete_nodes(self, tokens: list[str]) -> bool:
+        """Delete files/folders by node tokens. Returns True on success."""
+        return await drive.delete_nodes(self._cookie, self._cookies, tokens, self._domain)

@@ -7,7 +7,7 @@ import time
 import httpx
 
 from lark_bridge.proto import proto_pb2 as pb
-from lark_bridge._urls import INTERNAL_API
+from lark_bridge._urls import INTERNAL_API, USER_AGENT
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ async def send_message(
         headers = {
             "Cookie": cookie,
             "content-type": "application/x-protobuf",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "user-agent": USER_AGENT,
             "x-command": "5",
             "x-command-version": "5.7.0",
             "x-request-id": request_id,

@@ -14,7 +14,7 @@ import websockets
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
-from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST
+from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST, USER_AGENT
 from protobuf_to_dict import protobuf_to_dict
 
 logger = logging.getLogger(__name__)
@@ -159,7 +159,7 @@ async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = ""
 
         headers = {
             "Cookie": cookie,
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "user-agent": USER_AGENT,
         }
 
         async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:

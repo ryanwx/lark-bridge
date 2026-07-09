@@ -3,7 +3,7 @@
 from lark_bridge.client import LarkBridge
 
 __all__ = ["LarkBridge"]
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def serve() -> None:

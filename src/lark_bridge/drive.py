@@ -5,7 +5,7 @@ import zlib
 
 import httpx
 
-from lark_bridge._urls import DRIVE_STREAM
+from lark_bridge._urls import DRIVE_STREAM, USER_AGENT
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ async def create_folder(
         headers = {
             "Cookie": cookie,
             "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "user-agent": USER_AGENT,
             "x-csrftoken": cookies.get("_csrf_token", ""),
             "referer": f"https://{domain}/",
             "origin": f"https://{domain}",
@@ -69,7 +69,7 @@ async def upload_file(
         }
         headers = {
             "Cookie": cookie,
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "user-agent": USER_AGENT,
             "x-csrftoken": cookies.get("_csrf_token", ""),
             "referer": f"https://{domain}/",
             "origin": f"https://{domain}",
@@ -97,6 +97,31 @@ async def upload_file(
 
 
 OBJ_TYPE_MAP = {22: "docx", 3: "sheet", 2: "doc"}
+
+
+async def download_file(cookie: str, cookies: dict[str, str], file_token: str, domain: str = "") -> bytes | None:
+    """Download a file from Drive by its file_token.
+
+    Returns file bytes on success, None on failure.
+    """
+    headers = {
+        "Cookie": cookie,
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=60) as client:
+            resp = await client.get(
+                f"{DRIVE_STREAM}/space/api/box/stream/download/all/{file_token}/",
+            )
+            if resp.status_code != 200:
+                logger.error(f"Download file failed: {resp.status_code}")
+                return None
+            return resp.content
+    except Exception as e:
+        logger.error(f"Download file error: {e}")
+        return None
 
 
 async def _resolve_wiki_token(cookie: str, cookies: dict[str, str], wiki_token: str, domain: str) -> tuple[str, str]:
@@ -142,7 +167,7 @@ async def export_document(
     headers = {
         "Cookie": cookie,
         "content-type": "application/json",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "user-agent": USER_AGENT,
         "x-csrftoken": cookies.get("_csrf_token", ""),
         "referer": f"https://{domain}/",
     }
@@ -197,3 +222,141 @@ async def export_document(
     except Exception as e:
         logger.error(f"Export document error: {e}")
         return None
+
+
+async def list_my_space(cookie: str, cookies: dict[str, str], domain: str = "") -> list[dict]:
+    """List root folders in 'My Space'.
+
+    Returns list of {"token", "name", "type", "url", "edit_time"} or empty list.
+    """
+    headers = {
+        "Cookie": cookie,
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/drive/me/",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
+            resp = await client.get(
+                f"https://{domain}/space/api/explorer/v3/my_space/folder/",
+                params={"asc": "0", "rank": "3", "length": "50"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"list_my_space failed: {result.get('msg')}")
+                return []
+            return _parse_node_list(result.get("data", {}))
+    except Exception as e:
+        logger.error(f"list_my_space error: {e}")
+        return []
+
+
+async def list_shared_folders(cookie: str, cookies: dict[str, str], domain: str = "") -> list[dict]:
+    """List root folders in 'Shared Space'.
+
+    Returns list of {"token", "name", "type", "url", "edit_time"} or empty list.
+    """
+    headers = {
+        "Cookie": cookie,
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/drive/shared/",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
+            resp = await client.get(
+                f"https://{domain}/space/api/explorer/v2/share/folder/list/",
+                params={"asc": "0", "rank": "3", "length": "50"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"list_shared_folders failed: {result.get('msg')}")
+                return []
+            return _parse_node_list(result.get("data", {}))
+    except Exception as e:
+        logger.error(f"list_shared_folders error: {e}")
+        return []
+
+
+async def list_children(cookie: str, cookies: dict[str, str], folder_token: str, domain: str = "") -> list[dict]:
+    """List children (files + subfolders) of a folder.
+
+    Returns list of {"token", "name", "type", "url", "edit_time"} or empty list.
+    """
+    headers = {
+        "Cookie": cookie,
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/drive/folder/{folder_token}",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
+            resp = await client.get(
+                f"https://{domain}/space/api/explorer/v3/children/list/",
+                params={"token": folder_token, "asc": "0", "rank": "3", "length": "50"},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"list_children failed: {result.get('msg')}")
+                return []
+            return _parse_node_list(result.get("data", {}))
+    except Exception as e:
+        logger.error(f"list_children error: {e}")
+        return []
+
+
+async def delete_nodes(cookie: str, cookies: dict[str, str], tokens: list[str], domain: str = "") -> bool:
+    """Delete files/folders by their node tokens. Returns True on success."""
+    headers = {
+        "Cookie": cookie,
+        "content-type": "application/json",
+        "user-agent": USER_AGENT,
+        "x-csrftoken": cookies.get("_csrf_token", ""),
+        "referer": f"https://{domain}/",
+        "origin": f"https://{domain}",
+    }
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
+            resp = await client.post(
+                f"https://{domain}/space/api/explorer/v3/remove/",
+                json={"tokens": tokens, "apply": 1},
+            )
+            result = resp.json()
+            if result.get("code") != 0:
+                logger.error(f"delete_nodes failed: {result.get('msg')}")
+                return False
+            return True
+    except Exception as e:
+        logger.error(f"delete_nodes error: {e}")
+        return False
+
+
+# Type code to human-readable name
+_TYPE_NAMES = {0: "folder", 2: "doc", 3: "sheet", 22: "docx", 8: "bitable", 12: "mindnote"}
+
+
+def _parse_node_list(data: dict) -> list[dict]:
+    """Parse the common node list response format."""
+    nodes_map = data.get("entities", {}).get("nodes", {})
+    node_order = data.get("node_list", [])
+    # If no explicit order, use dict keys
+    if not node_order:
+        node_order = list(nodes_map.keys())
+    items = []
+    for token in node_order:
+        node = nodes_map.get(token, {})
+        if not node:
+            continue
+        type_code = node.get("type", -1)
+        items.append(
+            {
+                "token": node.get("token", token),
+                "obj_token": node.get("obj_token", ""),
+                "name": node.get("name", ""),
+                "type": _TYPE_NAMES.get(type_code, f"type_{type_code}"),
+                "type_code": type_code,
+                "url": node.get("url", ""),
+                "edit_time": node.get("edit_time", 0),
+            }
+        )
+    return items

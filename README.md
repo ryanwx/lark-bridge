@@ -79,11 +79,31 @@ await bridge.send_message(
 ### Drive Operations
 
 ```python
+# Create folder
 folder = await bridge.create_folder("My Folder", parent_token="root_token")
 # folder = {"token": "...", "url": "https://domain/drive/folder/..."}
 
+# Upload file
 result = await bridge.upload_file(folder["token"], "report.txt", b"file content")
 # result = {"file_token": "...", "node_token": "...", "url": "https://domain/file/..."}
+
+# List my space root folders
+items = await bridge.list_my_space()
+
+# List shared folders
+items = await bridge.list_shared_folders()
+
+# List children of a folder
+items = await bridge.list_children("fldcnfByPeMzPxrgtS5Xl06YRid")
+# Each item: {"token", "obj_token", "name", "type", "type_code", "url", "edit_time"}
+
+# Download a file (use obj_token, not node token)
+content = await bridge.download_file("boxcnAbcDef123")
+if content:
+    Path("report.pdf").write_bytes(content)
+
+# Delete files/folders (use node token)
+await bridge.delete_nodes(["nodcnXxx123"])
 ```
 
 ### Export Document
