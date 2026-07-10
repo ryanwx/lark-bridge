@@ -20,7 +20,20 @@ bridge = LarkBridge("your_cookie_string_here")
 
 # For enterprise tenants with custom domain:
 bridge = LarkBridge("your_cookie_string_here", domain="yourcompany.feishu.cn")
+
+# If WebSocket connection fails, you may need to provide app_key explicitly:
+bridge = LarkBridge("your_cookie_string_here", domain="yourcompany.feishu.cn", app_key="your_app_key")
 ```
+
+### How to Get `app_key`
+
+The `app_key` is used for WebSocket authentication. A default value is built-in, but if Feishu updates it you'll need to extract a new one:
+
+1. Open your Feishu domain in Chrome (e.g. `https://yourcompany.feishu.cn/messenger/`)
+2. Open DevTools → Sources → find `lark.xxxxxxxx.js` (under `feishucdn.com`)
+3. Search for `sass:"` in that JS file — the 32-char hex string is your `app_key`
+
+Alternatively, from the browser console Network tab, look for WebSocket connections to `msg-frontier.feishu.cn` and find the `access_key` parameter derivation.
 
 ### Listen to Messages
 

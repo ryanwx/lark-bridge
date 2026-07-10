@@ -3,7 +3,6 @@
 import asyncio
 import hashlib
 import logging
-import re
 import time
 from collections.abc import AsyncGenerator
 from typing import TypedDict
@@ -14,7 +13,7 @@ import websockets
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
-from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST, USER_AGENT
+from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST, USER_AGENT, APP_KEY
 from protobuf_to_dict import protobuf_to_dict
 
 logger = logging.getLogger(__name__)
@@ -37,6 +36,7 @@ async def listen(
     cookies: dict[str, str],
     watch_chats: list[str] | None = None,
     domain: str = "",
+    app_key: str = "",
 ) -> AsyncGenerator[Message, None]:
     """Connect to Feishu WebSocket and yield Message dicts.
 
@@ -44,7 +44,7 @@ async def listen(
     """
     while True:
         try:
-            params = await build_ws_params(cookie, cookies, domain)
+            params = await build_ws_params(cookie, cookies, domain, app_key)
             if not params:
                 logger.error("Failed to build WS params, retrying in 30s")
                 await asyncio.sleep(30)
@@ -149,7 +149,7 @@ def _build_ack(sid: int) -> bytes:
     return frame.SerializeToString()
 
 
-async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = "") -> dict | None:
+async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = "", app_key: str = "") -> dict | None:
     """Build WebSocket connection parameters."""
     try:
         device_id = cookies.get("passport_web_did", "")
@@ -157,32 +157,17 @@ async def build_ws_params(cookie: str, cookies: dict[str, str], domain: str = ""
             logger.error("No passport_web_did in cookies")
             return None
 
+        # Use provided app_key, or fall back to constant
+        resolved_key = app_key or APP_KEY
+
         headers = {
             "Cookie": cookie,
             "user-agent": USER_AGENT,
         }
 
+        access_key = hashlib.md5(f"2{resolved_key}{device_id}f8a69f1719916z".encode()).hexdigest()
+
         async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
-            # Get appKey
-            app_key = None
-            resp = await client.get(f"https://{domain}/messenger/", follow_redirects=True)
-            match = re.search(r"appKey:\s*[\"']([^\"']+)[\"']", resp.text)
-            if match:
-                app_key = match.group(1)
-            else:
-                js_matches = re.findall(r'src="(https://[^"]+/lark\.[^"]+\.js)"', resp.text)
-                for js_url in js_matches:
-                    js_resp = await client.get(js_url)
-                    m = re.search(r'sass\s*:\s*"([a-f0-9]+)"', js_resp.text)
-                    if m:
-                        app_key = m.group(1)
-                        break
-            if not app_key:
-                logger.error("Cannot find appKey")
-                return None
-
-            access_key = hashlib.md5(f"2{app_key}{device_id}f8a69f1719916z".encode()).hexdigest()
-
             # Get ticket
             resp = await client.get(
                 f"{LOGIN_HOST}/suite/passport/frontier_ticket/",

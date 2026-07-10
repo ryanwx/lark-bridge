@@ -8,10 +8,11 @@ from lark_bridge import listener, search, sender, drive
 class LarkBridge:
     """High-level Feishu/Lark client using web cookie authentication."""
 
-    def __init__(self, cookie: str, domain: str = "www.feishu.cn"):
+    def __init__(self, cookie: str, domain: str = "www.feishu.cn", app_key: str = ""):
         self._cookie = cookie.strip()
         self._cookies = self._parse_cookies(self._cookie)
         self._domain = domain
+        self._app_key = app_key
 
     @staticmethod
     def _parse_cookies(cookie_str: str) -> dict[str, str]:
@@ -19,7 +20,7 @@ class LarkBridge:
 
     async def listen(self, watch_chats: list[str] | None = None) -> AsyncGenerator[dict, None]:
         """Connect to WebSocket and yield Message dicts."""
-        async for msg in listener.listen(self._cookie, self._cookies, watch_chats, self._domain):
+        async for msg in listener.listen(self._cookie, self._cookies, watch_chats, self._domain, self._app_key):
             yield msg
 
     async def search_messages(
