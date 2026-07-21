@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lark-bridge"
-version = "0.5.1"
+version = "0.6.0"
 description = "Unofficial Feishu/Lark Web SDK - WebSocket listener, message search, send, and drive operations"
 readme = "README.md"
 license = "MIT"
@@ -23,8 +23,7 @@ classifiers = [
 dependencies = [
     "httpx>=0.27.0",
     "websockets>=12.0",
-    "protobuf>=5.0.0",
-    "protobuf3-to-dict>=0.1.0",
+    "protobuf>=5.0.0,<6",
 ]
 
 [project.optional-dependencies]

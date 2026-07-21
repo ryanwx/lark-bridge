@@ -7,7 +7,7 @@ import time
 import httpx
 
 from google.protobuf.internal.decoder import _DecodeVarint
-from protobuf_to_dict import protobuf_to_dict
+from lark_bridge._proto_utils import proto_to_dict
 
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
@@ -155,7 +155,7 @@ async def search_msg_ids_page(
 
     rpkt = pb.Packet()
     rpkt.ParseFromString(resp.content)
-    pl = protobuf_to_dict(rpkt).get("payload", b"")
+    pl = proto_to_dict(rpkt).get("payload", b"")
     if not pl:
         return {"msg_ids": [], "has_more": False, "page_token": ""}
 
@@ -229,14 +229,14 @@ async def fetch_messages(cookie: str, msg_ids: list[str], domain: str = "") -> l
 
     rpkt = pb.Packet()
     rpkt.ParseFromString(resp.content)
-    pl = protobuf_to_dict(rpkt).get("payload", b"")
+    pl = proto_to_dict(rpkt).get("payload", b"")
     if not pl:
         return []
 
     try:
         push = pb.PushMessagesRequest()
         push.ParseFromString(pl)
-        messages_raw = protobuf_to_dict(push).get("messages", {})
+        messages_raw = proto_to_dict(push).get("messages", {})
     except Exception:
         return []
 

@@ -14,7 +14,7 @@ import websockets
 from lark_bridge.proto import proto_pb2 as pb
 from lark_bridge.decoder import decode_text
 from lark_bridge._urls import WS_FRONTIER, LOGIN_HOST, USER_AGENT, APP_KEY
-from protobuf_to_dict import protobuf_to_dict
+from lark_bridge._proto_utils import proto_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def _handle_frame(data: bytes, watch_chats: list[str] | None) -> tuple[int, list
     """Decode a WebSocket frame. Returns (sid, list of Message dicts)."""
     frame = pb.Frame()
     frame.ParseFromString(data)
-    frame_dict = protobuf_to_dict(frame)
+    frame_dict = proto_to_dict(frame)
 
     payload = frame_dict.get("payload")
     if not payload:
@@ -84,7 +84,7 @@ def _handle_frame(data: bytes, watch_chats: list[str] | None) -> tuple[int, list
 
     packet = pb.Packet()
     packet.ParseFromString(payload)
-    packet_dict = protobuf_to_dict(packet)
+    packet_dict = proto_to_dict(packet)
     sid = packet_dict.get("sid", 0)
 
     if packet_dict.get("cmd") != 6:
@@ -97,7 +97,7 @@ def _handle_frame(data: bytes, watch_chats: list[str] | None) -> tuple[int, list
     try:
         push = pb.PushMessagesRequest()
         push.ParseFromString(inner)
-        push_dict = protobuf_to_dict(push)
+        push_dict = proto_to_dict(push)
     except Exception:
         return sid, []
 

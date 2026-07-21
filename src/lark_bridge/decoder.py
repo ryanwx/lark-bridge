@@ -6,7 +6,7 @@ import re
 from google.protobuf.internal.decoder import _DecodeVarint
 
 from lark_bridge.proto import proto_pb2 as pb
-from protobuf_to_dict import protobuf_to_dict
+from lark_bridge._proto_utils import proto_to_dict
 
 
 def decode_text(msg: dict) -> str:
@@ -23,11 +23,21 @@ def decode_text(msg: dict) -> str:
 
 
 def decode_type4(content: bytes) -> str:
-    """Decode type=4 (plain text) message."""
+    """Decode type=4 (plain text) message.
+
+    Primary: extract field 1 directly from wire format (newer Feishu encoding).
+    Fallback: parse as TextContent proto and walk richText tree (legacy encoding).
+    """
+    # Primary: wire format field 1 = text content (varint tag 0x0a = field 1, wire type 2)
+    text = _extract_wire_field1(content)
+    if text:
+        return text
+
+    # Fallback: legacy richText tree
     try:
         tc = pb.TextContent()
         tc.ParseFromString(content)
-        tc_dict = protobuf_to_dict(tc)
+        tc_dict = proto_to_dict(tc)
         rt = tc_dict.get("richText", {})
         elements = rt.get("elements", {}).get("dictionary", {})
         element_ids = rt.get("elementIds", [])
@@ -48,9 +58,43 @@ def decode_type4(content: bytes) -> str:
                 parts.append(_extract(cid))
             return "".join(parts)
 
-        return "".join(_extract(eid) for eid in element_ids)
+        result = "".join(_extract(eid) for eid in element_ids)
+        if result:
+            return result
     except Exception:
-        return ""
+        pass
+
+    return ""
+
+
+def _extract_wire_field1(data: bytes) -> str:
+    """Extract field 1 (wire type 2 = length-delimited) as UTF-8 string from raw protobuf bytes."""
+    try:
+        pos = 0
+        while pos < len(data):
+            tag, new_pos = _DecodeVarint(data, pos)
+            fn = tag >> 3
+            wt = tag & 0x7
+            if wt == 2:  # length-delimited
+                length, new_pos = _DecodeVarint(data, new_pos)
+                val = data[new_pos : new_pos + length]
+                if fn == 1:
+                    text = val.decode("utf-8", errors="replace")
+                    # Sanity check: should look like actual text, not a nested proto
+                    if text and not text.startswith("\x08") and not text.startswith("\x0a"):
+                        return text
+                pos = new_pos + length
+            elif wt == 0:  # varint
+                _, pos = _DecodeVarint(data, new_pos)
+            elif wt == 5:  # 32-bit
+                pos = new_pos + 4
+            elif wt == 1:  # 64-bit
+                pos = new_pos + 8
+            else:
+                break
+    except Exception:
+        pass
+    return ""
 
 
 def decode_type14(content: bytes) -> str:
@@ -118,7 +162,7 @@ def decode_type14(content: bytes) -> str:
             length, pos = _DecodeVarint(content, pos)
             rt = pb.RichText()
             rt.ParseFromString(content[pos : pos + length])
-            rt_dict = protobuf_to_dict(rt)
+            rt_dict = proto_to_dict(rt)
             elems = rt_dict.get("elements", {}).get("dictionary", {})
             eids = rt_dict.get("elementIds", [])
 
